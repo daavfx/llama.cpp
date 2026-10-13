@@ -10,6 +10,9 @@ file(GLOB LLAMA_MODELS_SOURCES "models/*.cpp")
 
 set(LLAMA_CORE_SOURCES
     llama.cpp
+    daavfx_dspark_bridge.cpp
+    daavfx_per_layer_hooks.c
+    daavfx_theater_dispatch.c
     llama-adapter.cpp
     llama-arch.cpp
     llama-batch.cpp

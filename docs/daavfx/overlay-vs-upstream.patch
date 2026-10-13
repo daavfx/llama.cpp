@@ -1,0 +1,39 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index afdaddc..c088362 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -10,6 +10,9 @@ file(GLOB LLAMA_MODELS_SOURCES "models/*.cpp")
+ 
+ set(LLAMA_CORE_SOURCES
+     llama.cpp
++    daavfx_dspark_bridge.cpp
++    daavfx_per_layer_hooks.c
++    daavfx_theater_dispatch.c
+     llama-adapter.cpp
+     llama-arch.cpp
+     llama-batch.cpp
+diff --git a/src/llama-context.cpp b/src/llama-context.cpp
+index 96b5464..d920a2b 100644
+--- a/src/llama-context.cpp
++++ b/src/llama-context.cpp
+@@ -5,6 +5,7 @@
+ #include "llama-graph.h"
+ #include "llama-impl.h"
+ #include "llama-batch.h"
++#include "daavfx_dspark_bridge.h"
+ #include "llama-io.h"
+ #include "llama-memory.h"
+ #include "llama-mmap.h"
+@@ -141,6 +142,12 @@ llama_context::llama_context(
+     cparams.cb_eval           = params.cb_eval;
+     cparams.cb_eval_user_data = params.cb_eval_user_data;
+ 
++    // daavile fx: DSpark hidden taps (env DAAVFX_DSPARK_TAPS=1) - install our
++    // eval callback only if the caller didn't bring their own.
++    if (!cparams.cb_eval) {
++        daavfx_dspark_try_install(cparams);
++    }
++
+     cparams.ctx_other = nullptr;
+ 
+     // TODO: more generic

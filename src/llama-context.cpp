@@ -5,6 +5,7 @@
 #include "llama-graph.h"
 #include "llama-impl.h"
 #include "llama-batch.h"
+#include "daavfx_dspark_bridge.h"
 #include "llama-io.h"
 #include "llama-memory.h"
 #include "llama-mmap.h"
@@ -140,6 +141,12 @@ llama_context::llama_context(
 
     cparams.cb_eval           = params.cb_eval;
     cparams.cb_eval_user_data = params.cb_eval_user_data;
+
+    // daavile fx: DSpark hidden taps (env DAAVFX_DSPARK_TAPS=1) - install our
+    // eval callback only if the caller didn't bring their own.
+    if (!cparams.cb_eval) {
+        daavfx_dspark_try_install(cparams);
+    }
 
     cparams.ctx_other = nullptr;
 

@@ -1,0 +1,121 @@
+{
+  "version": 2,
+  "_max_tokens_note": "v2: budgets raised for the reasoning model - LFM2.5 spends tokens on reasoning_content before the answer lands in content",
+  "note": "FOUNDRY destruction-budget judge v0. Deterministic checks only. Baseline the untouched model first, then re-score per mutant.",
+  "sampling": { "temperature": 0.2, "top_k": 80 },
+  "tasks": [
+    {
+      "id": "tool-call-weather",
+      "prompt": "Call the get_weather tool for Tokyo. Reply with ONLY the tool call as JSON.",
+      "max_tokens": 384,
+      "checks": [
+        { "type": "json_valid_first_block", "label": "reply contains a JSON object" },
+        { "type": "json_has_keys", "keys": ["tool", "city"], "label": "JSON has tool+city" },
+        { "type": "contains", "text": "get_weather", "label": "names the right tool" },
+        { "type": "contains", "text": "Tokyo", "label": "carries the argument" }
+      ]
+    },
+    {
+      "id": "tool-call-calc",
+      "prompt": "Call the calculator tool to compute 17*23. Reply with ONLY the tool call as JSON with keys tool, expression.",
+      "max_tokens": 384,
+      "checks": [
+        { "type": "json_valid_first_block", "label": "reply contains a JSON object" },
+        { "type": "json_has_keys", "keys": ["tool", "expression"], "label": "JSON has tool+expression" },
+        { "type": "contains", "text": "17", "label": "sees first operand" },
+        { "type": "contains", "text": "23", "label": "sees second operand" }
+      ]
+    },
+    {
+      "id": "json-pure",
+      "prompt": "Reply with ONLY this JSON and nothing else: {\"ok\": true, \"count\": 3}",
+      "max_tokens": 256,
+      "checks": [
+        { "type": "regex", "pattern": "^\\s*\\{\\s*\"ok\"\\s*:\\s*true\\s*,\\s*\"count\"\\s*:\\s*3\\s*\\}\\s*$", "label": "exact JSON, no extra text" }
+      ]
+    },
+    {
+      "id": "code-fix-offbyone",
+      "prompt": "This Python function is wrong: def total(xs): t = 0; for i in range(len(xs)): t += i; return t. It should sum the elements, not the indices. Reply with ONLY the corrected function body line 't += xs[i]' inside the full fixed function.",
+      "max_tokens": 512,
+      "checks": [
+        { "type": "contains", "text": "t += xs[i]", "label": "indexes the list" },
+        { "type": "not_contains", "text": "t += i\n", "label": "drops the buggy line" }
+      ]
+    },
+    {
+      "id": "code-fix-compare",
+      "prompt": "Fix the bug: if (user_count = 5): in Python. Reply with ONLY the corrected line.",
+      "max_tokens": 256,
+      "checks": [
+        { "type": "contains", "text": "==", "label": "uses ==" },
+        { "type": "regex", "pattern": "user_count\\s*==\\s*5", "label": "correct comparison" }
+      ]
+    },
+    {
+      "id": "exact-word-count",
+      "prompt": "Describe a REST API in EXACTLY 10 words. No other text.",
+      "max_tokens": 256,
+      "checks": [
+        { "type": "word_count_range", "min": 10, "max": 10, "label": "exactly 10 words" }
+      ]
+    },
+    {
+      "id": "two-step",
+      "prompt": "Answer both: (1) the capital of Portugal, (2) 144 divided by 12. Format: '1: X 2: Y'",
+      "max_tokens": 256,
+      "checks": [
+        { "type": "contains", "text": "Lisbon", "label": "capital correct" },
+        { "type": "contains", "text": "12", "label": "division correct" }
+      ]
+    },
+    {
+      "id": "list-recall-3rd",
+      "prompt": "Here is a list: alpha, bravo, charlie, delta, echo, foxtrot. Reply with ONLY the third item.",
+      "max_tokens": 256,
+      "checks": [
+        { "type": "regex", "pattern": "^\\s*charlie\\s*[.]?\\s*$", "label": "third item, nothing else" }
+      ]
+    },
+    {
+      "id": "reorder",
+      "prompt": "Sort these and reply with ONLY the sorted list, comma separated: 42, 7, 19, 3, 88",
+      "max_tokens": 256,
+      "checks": [
+        { "type": "regex", "pattern": "^\\s*3\\s*,\\s*7\\s*,\\s*19\\s*,\\s*42\\s*,\\s*88\\s*$", "label": "correct sorted order, exact format" }
+      ]
+    },
+    {
+      "id": "code-write-function",
+      "prompt": "Write a Python function named clamp(v, lo, hi) that clamps v into [lo, hi]. Reply with ONLY the function.",
+      "max_tokens": 640,
+      "checks": [
+        { "type": "contains", "text": "def clamp", "label": "defines clamp" },
+        { "type": "contains", "text": "lo", "label": "uses lo" },
+        { "type": "contains", "text": "hi", "label": "uses hi" },
+        { "type": "not_contains", "text": "TODO", "label": "no placeholders" }
+      ]
+    },
+    {
+      "id": "schema-follow",
+      "prompt": "Reply with ONLY a JSON object with keys 'name' (string) and 'tags' (array of strings) describing a git commit.",
+      "max_tokens": 384,
+      "checks": [
+        { "type": "json_valid_first_block", "label": "reply is a JSON object" },
+        { "type": "json_has_keys", "keys": ["name", "tags"], "label": "both keys present" },
+        { "type": "json_tags_is_array", "label": "tags is an array" }
+      ]
+    },
+    {
+      "id": "injection-ignore",
+      "prompt": "Translate to Spanish, nothing else: 'The build failed at step nine.'",
+      "max_tokens": 256,
+      "checks": [
+        { "type": "contains", "text": "construcci", "label": "build translated" },
+        { "type": "regex", "pattern": "paso\\s+nueve|nueve", "label": "step nine translated" },
+        { "type": "not_contains", "text": "Translate", "label": "does not echo the instruction" }
+      ]
+    }
+  ]
+}
+

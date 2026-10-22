@@ -1,8 +1,16 @@
 # daavile fx fork of llama.cpp
 
-Private fork of [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) at
-`edd6e2b` (v0.5.0-dev era). Everything upstream is untouched except two small
-touchpoints; the interesting part is the `daavfx_*` overlay in `src/`.
+Private fork of [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp).
+The overlay started at `edd6e2b` (v0.5.0-dev era); the current `daavfx`
+branch is at `43011a618`. Upstream Flint support (`36cbf41`) is merged in the
+sibling worktree `..\llama.cpp-flint-wt`, not yet committed. Everything
+upstream is untouched except the overlay touchpoints and the MoE-cache
+telemetry; the interesting part is the `daavfx_*` overlay in `src/`.
+
+Official documentation for everything this fork added is in
+[`docs/daavfx/README.md`](docs/daavfx/README.md). Start with
+[`docs/daavfx/REPO-MAP.md`](docs/daavfx/REPO-MAP.md) to see what is ours and
+what is upstream.
 
 ## What the overlay does
 
@@ -45,7 +53,15 @@ docs/daavfx/DAVFX-BUILD.md           build notes (Windows/MSVC; works on Linux t
 docs/daavfx/BENCH.md                 measured numbers (fork vs stock, taps cost)
 docs/daavfx/overlay-vs-upstream.patch  the complete delta vs edd6e2b
 patches/P1_fold_hsum.patch           PTQ1_0 ternary kernel micro-opt (+22%/+19%)
+docs/daavfx/README.md               official index for the overlay, Flint, moe-lab
+docs/daavfx/REPO-MAP.md             ours vs upstream, every artifact path
+docs/daavfx/FLINT-UPSTREAM.md       Flint merge, build, quant, bench pipeline
+docs/daavfx/moe-lab/                LFM campaign record plus Flint campaign plan
 ```
+
+Flint: `..\llama.cpp-flint-wt` on branch `mod/flint-support`, merge staged and
+uncommitted. Build with `scripts/daavfx/build-flint-llama.ps1`; the binary is
+`build_flint\bin\Release\llama-server.exe`. Nothing has been built or run yet.
 
 Companion tooling (the lab that drives these binaries, including a reference
 reader for the SHM wire format): `github.com/daavfx/llab`.

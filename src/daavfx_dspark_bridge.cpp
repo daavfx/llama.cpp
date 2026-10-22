@@ -54,20 +54,118 @@ static void dspark_shm_publish(void) {
     g_dspark_shm->epoch++;  /* even: stable snapshot */
 }
 
+// ---- Router histogram logger (Phase 3b) --------------------------------
+// Env gate: DAAVFX_ROUTER_LOG=<csv path>. Captures ffn_moe_topk-<il>
+// (selected expert ids, I32) and ffn_moe_probs-<il> (unbiased weights
+// basis, F32) from the sched eval callback and aggregates per
+// (layer, expert): selection count, selected-gating mass, total prob
+// mass. Snapshot-rewrites the CSV every ROUTER_FLUSH_TOKENS prob tokens
+// and at exit; TerminateProcess loses only the last partial window.
+static char       g_router_log_path[260] = {0};
+static uint64_t   g_router_count[24][32];
+static double     g_router_sel_mass[24][32];
+static double     g_router_all_mass[24][32];
+static uint64_t   g_router_tokens[24];
+static float    * g_router_last_probs[24];
+static int64_t    g_router_last_ntok[24];
+static uint64_t   g_router_prob_tokens_total = 0;
+
+#define ROUTER_FLUSH_TOKENS 256
+
+static void router_log_flush(void) {
+    if (!g_router_log_path[0]) return;
+    FILE * f = fopen(g_router_log_path, "w");
+    if (!f) return;
+    fprintf(f, "layer,expert,selected,mass_selected,mass_all,tokens\n");
+    for (int il = 0; il < 24; ++il) {
+        if (!g_router_tokens[il]) continue;
+        for (int e = 0; e < 32; ++e) {
+            fprintf(f, "%d,%d,%llu,%.6f,%.6f,%llu\n", il, e,
+                    (unsigned long long) g_router_count[il][e],
+                    g_router_sel_mass[il][e],
+                    g_router_all_mass[il][e],
+                    (unsigned long long) g_router_tokens[il]);
+        }
+    }
+    fclose(f);
+}
+
+static void router_log_capture_probs(int il, struct ggml_tensor * t) {
+    const int64_t ntok = t->ne[1];
+    const int W = (int) t->ne[0];   // expert width: 32 baseline, K_phys on mutants
+    if (il >= 24 || W < 1 || W > 32 || !ggml_is_contiguous(t)) return;
+    free(g_router_last_probs[il]);
+    g_router_last_probs[il] = (float *) malloc((size_t) W * ntok * sizeof(float));
+    if (!g_router_last_probs[il]) { g_router_last_ntok[il] = 0; return; }
+    memcpy(g_router_last_probs[il], t->data, (size_t) W * ntok * sizeof(float));
+    g_router_last_ntok[il] = ntok;
+    const float * p = g_router_last_probs[il];
+    for (int64_t tok = 0; tok < ntok; ++tok) {
+        g_router_tokens[il] += 1;
+        for (int e = 0; e < W; ++e) g_router_all_mass[il][e] += p[e + tok * W];
+    }
+    g_router_prob_tokens_total += (uint64_t) ntok;
+    if (g_router_prob_tokens_total / ROUTER_FLUSH_TOKENS !=
+        (g_router_prob_tokens_total - (uint64_t) ntok) / ROUTER_FLUSH_TOKENS) {
+        router_log_flush();
+    }
+}
+
+static void router_log_capture_topk(int il, struct ggml_tensor * t) {
+    if (il >= 24) return;
+    const float * probs = g_router_last_probs[il];
+    const int64_t ntok_probs = g_router_last_ntok[il];
+    const int64_t ntok = t->ne[1];
+    if (!ggml_is_contiguous(t)) return;
+    // ggml_argsort_top_k emits I64 indices in this tree; accept I32 too
+    const int is64 = (t->type == GGML_TYPE_I64);
+    for (int64_t tok = 0; tok < ntok; ++tok) {
+        for (int64_t k = 0; k < t->ne[0]; ++k) {
+            const int64_t e64 = is64 ? ((const int64_t *) t->data)[k + tok * t->ne[0]]
+                                     : (int64_t)((const int32_t *) t->data)[k + tok * t->ne[0]];
+            if (e64 >= 0 && e64 < 32) {
+                const int e = (int) e64;
+                g_router_count[il][e] += 1;
+                if (probs && tok < ntok_probs) {
+                    g_router_sel_mass[il][e] += probs[e + tok * 32];
+                }
+            }
+        }
+    }
+}
+
 // ggml_backend_sched_eval_callback:
 //   ask == true  -> return whether we want to observe tensor t
 //   ask == false -> t has been computed; data is valid now
 static bool davfx_dspark_eval_cb(struct ggml_tensor * t, bool ask, void * /*user_data*/) {
+    const char * name = ggml_get_name(t);
+    if (g_router_log_path[0] && name && ask) {
+        if (strncmp(name, "ffn_moe_topk-", 13) == 0) {
+            return (t->type == GGML_TYPE_I64 || t->type == GGML_TYPE_I32) &&
+                   t->buffer && ggml_backend_buffer_is_host(t->buffer);
+        }
+        if (strncmp(name, "ffn_moe_probs-", 14) == 0) {
+            return t->type == GGML_TYPE_F32 && t->buffer && ggml_backend_buffer_is_host(t->buffer);
+        }
+    }
     if (ask) {
         if (!t || t->type != GGML_TYPE_F32) {
             return false;
         }
         // observe only layer-output tensors named "l_out-<il>"
-        const char * name = ggml_get_name(t);
         return name && strncmp(name, "l_out-", 6) == 0;
     }
 
-    const char * name = ggml_get_name(t);
+    if (g_router_log_path[0] && name) {
+        if (strncmp(name, "ffn_moe_probs-", 14) == 0 && t->type == GGML_TYPE_F32) {
+            router_log_capture_probs(atoi(name + 14), t);
+            return true;
+        }
+        if (strncmp(name, "ffn_moe_topk-", 13) == 0 && t->type == GGML_TYPE_I32) {
+            router_log_capture_topk(atoi(name + 13), t);
+            return true;
+        }
+    }
     if (!name || strncmp(name, "l_out-", 6) != 0) {
         return true;
     }
@@ -88,15 +186,25 @@ static bool davfx_dspark_eval_cb(struct ggml_tensor * t, bool ask, void * /*user
 
 bool daavfx_dspark_try_install(llama_cparams & cparams) {
     const char * env = getenv("DAAVFX_DSPARK_TAPS");
-    if (!env || atoi(env) != 1) {
+    const char * rlog = getenv("DAAVFX_ROUTER_LOG");
+    const bool want_spark = env && atoi(env) == 1;
+    const bool want_router = rlog && rlog[0];
+    if (!want_spark && !want_router) {
         return false;
     }
-
+    if (want_router) {
+        strncpy(g_router_log_path, rlog, sizeof(g_router_log_path) - 1);
+        g_router_log_path[sizeof(g_router_log_path) - 1] = 0;
+        atexit(router_log_flush);
+        fprintf(stderr, "%s: router histogram logger -> %s\n", __func__, g_router_log_path);
+    }
+    if (want_spark) {
     // default LFM2.5 tap set; hidden 2048 matches the DSpark draft input
     const int32_t taps[DAAVFX_DSPARK_TAPS] = {2, 6, 10, 14, 18};
     daavfx_hooks_init();
     daavfx_dspark_configure(taps, DAAVFX_DSPARK_TAPS, DAAVFX_DSPARK_HIDDEN);
     daavfx_dspark_set_enabled(true);
+    }
 
     // daavfx: register measured device throughputs for theater dispatch
     daavfx_dispatch_register_device(DAAVFX_THEATER_CPU,      18.32f);

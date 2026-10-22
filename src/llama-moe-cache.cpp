@@ -6,6 +6,8 @@
 #include "ggml-cpp.h"
 
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
@@ -25,16 +27,27 @@ struct moe_cache_lru {
     std::vector<int32_t> next;
     int32_t head = -1;
     int32_t tail = -1;
+    int32_t n_layer = 0;
 
     std::vector<uint32_t> seen; // [n_expert]
     uint32_t seen_gen = 0;
     std::vector<int32_t> uniq;
 
+    // reuse telemetry (C++ round 2 step 1): per layer hit/miss counters plus
+    // a call counter for the periodic summary. Env-gated print:
+    // DAAVFX_MOE_CACHE_STATS=1
+    std::vector<uint64_t> hits_by_layer;
+    std::vector<uint64_t> misses_by_layer;
+    uint64_t plan_calls = 0;
+
     void init(int32_t n_layer, int32_t n_expert, int32_t n_slots) {
+        this->n_layer  = n_layer;
         this->n_expert = n_expert;
         this->n_slots  = n_slots;
         slot_map.assign(n_layer, nullptr);
         key_of.assign(n_slots, -1);
+        hits_by_layer.assign(n_layer, 0);
+        misses_by_layer.assign(n_layer, 0);
         prev.resize(n_slots);
         next.resize(n_slots);
         for (int32_t s = 0; s < n_slots; ++s) {
@@ -100,13 +113,73 @@ struct moe_cache_lru {
                 n_hit++;
             }
         }
+        // reuse telemetry (C++ round 2 step 1)
+        hits_by_layer[il] += (uint64_t) n_hit;
+        misses_by_layer[il] += (uint64_t) (uniq.size() - (size_t) n_hit);
+        if (++plan_calls % 1024 == 0) {
+            static const int stats = []() {
+                const char * e = getenv("DAAVFX_MOE_CACHE_STATS");
+                return (e && atoi(e) == 1) ? 1 : 0;
+            }();
+            if (stats) {
+                for (int32_t l = 0; l < n_layer; ++l) {
+                    const uint64_t h = hits_by_layer[l];
+                    const uint64_t mi = misses_by_layer[l];
+                    if (h + mi == 0) {
+                        continue;
+                    }
+                    int32_t used = 0;
+                    for (int32_t s = 0; s < n_slots; ++s) {
+                        if (key_of[s] >= 0 && key_of[s] / n_expert == l) {
+                            used++;
+                        }
+                    }
+                    fprintf(stderr, "moe-cache stats: layer %2d hits=%llu misses=%llu rate=%.1f%% slots=%d\n",
+                            l, (unsigned long long) h, (unsigned long long) mi,
+                            100.0 * (double) h / (double) (h + mi), used);
+                }
+            }
+        }
         // sorted misses usually get consecutive slots, so the uploads can be merged
         std::sort(uniq.begin(), uniq.end());
+        // LK-2 / REVIEW-6: ring-distance eviction (env DAAVFX_MOE_RING_EVICT=1).
+        // The flat LRU evicts the least recently used slot, which under the
+        // sequential MoE layer ring is often an expert of an early layer that
+        // is needed again within the same or next token pass (measured thrash:
+        // diverse-prompt fills rotate the whole cache every ~8 tokens). Instead
+        // prefer the slot whose layer is stalest in ring order relative to the
+        // layer being served: distance = ((cl - il) mod n_layer), evict the max.
+        // Walking the LRU list in order makes the first max-distance slot the
+        // least recently used one among them (free LRU tie-break).
+        static const int ring_evict = []() {
+            const char * e = getenv("DAAVFX_MOE_RING_EVICT");
+            return (e && atoi(e) == 1) ? 1 : 0;
+        }();
         for (int32_t e : uniq) {
             if (slots[e] >= 0) {
                 continue;
             }
-            const int32_t s = head;
+            int32_t s = head;
+            if (ring_evict && n_layer > 0) {
+                int32_t best_s = -1;
+                int32_t best_d = -1;
+                for (int32_t cand = head, iter = 0; cand >= 0 && iter < n_slots; cand = next[cand], ++iter) {
+                    const int32_t key = key_of[cand];
+                    if (key < 0) {
+                        best_s = cand;
+                        break;
+                    }
+                    const int32_t cl = key / n_expert;
+                    const int32_t d = ((cl - il) % n_layer + n_layer) % n_layer;
+                    if (d > best_d) {
+                        best_d = d;
+                        best_s = cand;
+                    }
+                }
+                if (best_s >= 0) {
+                    s = best_s;
+                }
+            }
             if (key_of[s] >= 0) {
                 slot_map[key_of[s] / n_expert][key_of[s] % n_expert] = -1;
             }

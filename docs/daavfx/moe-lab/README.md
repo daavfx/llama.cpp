@@ -19,7 +19,7 @@ the daavfx overlay, not to this lab.
 2. **FORK-CHANGES.md** - every change this campaign made to the fork
    (C++ telemetry, env knobs, build tree, tooling) so a future coder can see
    what is ours and what is upstream.
-3. **INFLIGHT.md** (fork root) - the ledger: 28 rows, one per change, in
+3. **INFLIGHT.md** (fork root) - the ledger: 30 rows, one per change, in
    chronological order, with evidence and status.
 
 ## The documents

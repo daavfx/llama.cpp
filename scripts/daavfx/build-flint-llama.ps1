@@ -45,15 +45,20 @@ $cfgArgs = @('-S', $ShortLink, '-B', $build, '-G', 'Visual Studio 17 2022', '-A'
              '-DGGML_NATIVE=ON', '-DBUILD_SHARED_LIBS=OFF')
 if (-not $CpuOnly) { $cfgArgs += '-DGGML_VULKAN=ON' }
 
-$cfgLine = 'cmake ' + ($cfgArgs -join ' ')
+$cfgLine = 'cmake ' + (($cfgArgs | ForEach-Object { if ($_ -like '* *') { '"' + $_ + '"' } else { $_ } }) -join ' ')
 $buildLine = 'cmake --build "' + $build + '" --config ' + $Config + ' --target llama-server llama-cli -- /m'
 
 Write-Host "configure: $cfgLine"
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 & cmd.exe /c ('call "' + $vcvars + '" >nul && ' + $cfgLine)
+$ErrorActionPreference = $prevEap
 if ($LASTEXITCODE -ne 0) { throw "cmake configure failed ($LASTEXITCODE)" }
 
 Write-Host "build: $buildLine"
+$ErrorActionPreference = 'Continue'
 & cmd.exe /c ('call "' + $vcvars + '" >nul && ' + $buildLine)
+$ErrorActionPreference = $prevEap
 if ($LASTEXITCODE -ne 0) { throw "cmake build failed ($LASTEXITCODE)" }
 
 $server = Join-Path $build "bin\$Config\llama-server.exe"

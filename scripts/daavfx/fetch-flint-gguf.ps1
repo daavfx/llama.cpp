@@ -73,7 +73,7 @@ foreach ($item in $downloads) {
     Write-Host "file: $item"
     Write-Host "url : $url"
     Write-Host "out : $out"
-    & curl.exe -L --fail --retry 3 --retry-delay 5 -o $out $url
+    & curl.exe -L --fail --silent --show-error --retry 3 --retry-delay 5 -C - -o $out $url
     if ($LASTEXITCODE -ne 0) { throw "curl failed for $item ($LASTEXITCODE)" }
     $size = (Get-Item -LiteralPath $out).Length
     $total += $size

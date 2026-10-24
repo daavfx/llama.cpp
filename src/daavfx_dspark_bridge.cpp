@@ -62,24 +62,31 @@ static void dspark_shm_publish(void) {
 // mass. Snapshot-rewrites the CSV every ROUTER_FLUSH_TOKENS prob tokens
 // and at exit; TerminateProcess loses only the last partial window.
 static char       g_router_log_path[260] = {0};
-static uint64_t   g_router_count[24][32];
-static double     g_router_sel_mass[24][32];
-static double     g_router_all_mass[24][32];
-static uint64_t   g_router_tokens[24];
-static float    * g_router_last_probs[24];
-static int64_t    g_router_last_ntok[24];
+// Capture dimensions sized for Flint-class MoE: up to 48 MoE layers, up to
+// 256 experts. The original [24][32] silently dropped everything beyond it
+// and produced an invalid X-ray verdict on Flint (5.8% of the topology).
+// The guard below logs loudly if a model exceeds these bounds.
+static uint64_t   g_router_count[48][256];
+static double     g_router_sel_mass[48][256];
+static double     g_router_all_mass[48][256];
+static uint64_t   g_router_tokens[48];
+static float    * g_router_last_probs[48];
+static int64_t    g_router_last_ntok[48];
+static int        g_router_last_w[48];
 static uint64_t   g_router_prob_tokens_total = 0;
 
 #define ROUTER_FLUSH_TOKENS 256
+#define ROUTER_MAX_LAYERS   48
+#define ROUTER_MAX_EXPERTS  256
 
 static void router_log_flush(void) {
     if (!g_router_log_path[0]) return;
     FILE * f = fopen(g_router_log_path, "w");
     if (!f) return;
     fprintf(f, "layer,expert,selected,mass_selected,mass_all,tokens\n");
-    for (int il = 0; il < 24; ++il) {
+    for (int il = 0; il < ROUTER_MAX_LAYERS; ++il) {
         if (!g_router_tokens[il]) continue;
-        for (int e = 0; e < 32; ++e) {
+        for (int e = 0; e < ROUTER_MAX_EXPERTS; ++e) {
             fprintf(f, "%d,%d,%llu,%.6f,%.6f,%llu\n", il, e,
                     (unsigned long long) g_router_count[il][e],
                     g_router_sel_mass[il][e],
@@ -92,13 +99,21 @@ static void router_log_flush(void) {
 
 static void router_log_capture_probs(int il, struct ggml_tensor * t) {
     const int64_t ntok = t->ne[1];
-    const int W = (int) t->ne[0];   // expert width: 32 baseline, K_phys on mutants
-    if (il >= 24 || W < 1 || W > 32 || !ggml_is_contiguous(t)) return;
+    const int W = (int) t->ne[0];   // expert width: 32 baseline, 256 on Flint
+    if ((il >= ROUTER_MAX_LAYERS || W < 1 || W > ROUTER_MAX_EXPERTS || !ggml_is_contiguous(t))) {
+        static int warned = 0;
+        if (!warned) {
+            fprintf(stderr, "router-log: capture exceeds bounds (layer %d, width %d) - some router data is DROPPED\n", il, W);
+            warned = 1;
+        }
+        return;
+    }
     free(g_router_last_probs[il]);
     g_router_last_probs[il] = (float *) malloc((size_t) W * ntok * sizeof(float));
     if (!g_router_last_probs[il]) { g_router_last_ntok[il] = 0; return; }
     memcpy(g_router_last_probs[il], t->data, (size_t) W * ntok * sizeof(float));
     g_router_last_ntok[il] = ntok;
+    g_router_last_w[il] = W;
     const float * p = g_router_last_probs[il];
     for (int64_t tok = 0; tok < ntok; ++tok) {
         g_router_tokens[il] += 1;
@@ -112,9 +127,10 @@ static void router_log_capture_probs(int il, struct ggml_tensor * t) {
 }
 
 static void router_log_capture_topk(int il, struct ggml_tensor * t) {
-    if (il >= 24) return;
+    if (il >= ROUTER_MAX_LAYERS) return;
     const float * probs = g_router_last_probs[il];
     const int64_t ntok_probs = g_router_last_ntok[il];
+    const int stride = g_router_last_w[il];
     const int64_t ntok = t->ne[1];
     if (!ggml_is_contiguous(t)) return;
     // ggml_argsort_top_k emits I64 indices in this tree; accept I32 too
@@ -123,11 +139,11 @@ static void router_log_capture_topk(int il, struct ggml_tensor * t) {
         for (int64_t k = 0; k < t->ne[0]; ++k) {
             const int64_t e64 = is64 ? ((const int64_t *) t->data)[k + tok * t->ne[0]]
                                      : (int64_t)((const int32_t *) t->data)[k + tok * t->ne[0]];
-            if (e64 >= 0 && e64 < 32) {
+            if (e64 >= 0 && e64 < ROUTER_MAX_EXPERTS) {
                 const int e = (int) e64;
                 g_router_count[il][e] += 1;
-                if (probs && tok < ntok_probs) {
-                    g_router_sel_mass[il][e] += probs[e + tok * 32];
+                if (probs && stride > 0 && tok < ntok_probs) {
+                    g_router_sel_mass[il][e] += probs[e + tok * stride];
                 }
             }
         }

@@ -147,3 +147,52 @@ No row without a command line and a binary identity.
 3. Whether a page-file increase is allowed if Q3 needs it.
 4. Whether the MT5 pass is mandatory before any quality-only score is reported.
 5. Whether Track B starts from Flint or from the current small-model winner.
+
+## 8. X-RAY VERDICT (H2, harness-lane coder, 2026-10-22)
+
+**VERDICT: COLD TAIL DETECTED - surgery is live.**
+
+The router histogram (flint-router-log.csv, 705 rows, 22 MoE layers x 32
+experts, 8960 tokens sampled via 10 diverse prompts through Q2_K_XL at
+-ngl 10) shows:
+
+- **Only 209/704 (29.7%) of (layer, expert) slots were ever selected.**
+  The bottom 70% of experts are completely dead.
+- **The top 50% of experts carry 100% of selections.** In LFM2.5-8B-A1B,
+  the same metric was 50.7% (near-perfect balance). Flint is the OPPOSITE.
+- **CV (coefficient of variation) = 2.180** across all slots (LFM was near 0
+  for the load-balanced profile).
+- Per-layer active experts range from 5/32 to 17/32; even the busiest layer
+  leaves half its experts idle.
+- The heaviest experts (layer 11/expert 21: 12 selections, layer 18/expert 26:
+  11 selections) carry 10x the median.
+
+**What this means for the campaign:**
+
+- LFM2.5 taught us "load-balanced = no cold tail = surgery dies." Flint
+  BREAKS that law: the 256-expert architecture creates a real cold tail.
+- The surgery lane (Phase 4) is LIVE: amputation and ghost-merge are
+  viable paths for Flint, unlike LFM.
+- The quant sweep (M4) should proceed: even without surgery, the quant
+  ladder determines the usable baseline.
+
+**Caveats (small sample, honest):**
+- 8960 tokens across 10 simple prompts; a more diverse workload may
+  activate more experts.
+- Only layers 2-23 are logged (22 of the model's MoE layers); layers 0-1
+  may be dense or not instrumented.
+- The Q2_K_XL quant may affect routing vs the full-precision model.
+- `selected` counts logging events, not individual token-level selections
+  (the logger batches); the exact semantics depend on the DAAVFX_ROUTER_LOG
+  implementation.
+
+**Artifacts:**
+- Router CSV: `scripts\daavfx\results\flint\router-q2xl-initial.csv` (705 rows)
+- Server log: `scripts\daavfx\results\flint-server.log`
+- Build: `build_flint\bin\Release\llama-server.exe` (flint worktree)
+
+**Load note:** Q2_K_XL at -ngl 99 OOMs on the 4GB GPU (H2 CONFIRMED).
+Partial split at -ngl 10 loads and generates, but at 0.14-0.39 t/s prompt
+processing (H1 CONFIRMED: under the 2 t/s gate). The X-ray data was
+collected during these slow prompts; the router histogram does not require
+fast inference, only correct routing decisions.

@@ -84,17 +84,56 @@ static void router_log_flush(void) {
     FILE * f = fopen(g_router_log_path, "w");
     if (!f) return;
     fprintf(f, "layer,expert,selected,mass_selected,mass_all,tokens\n");
+    int layers_traffic = 0, max_layer = -1, min_layer = ROUTER_MAX_LAYERS, max_expert = -1;
+    uint64_t total_sel = 0;
     for (int il = 0; il < ROUTER_MAX_LAYERS; ++il) {
         if (!g_router_tokens[il]) continue;
+        layers_traffic++;
+        if (il > max_layer) max_layer = il;
+        if (il < min_layer) min_layer = il;
         for (int e = 0; e < ROUTER_MAX_EXPERTS; ++e) {
             fprintf(f, "%d,%d,%llu,%.6f,%.6f,%llu\n", il, e,
                     (unsigned long long) g_router_count[il][e],
                     g_router_sel_mass[il][e],
                     g_router_all_mass[il][e],
                     (unsigned long long) g_router_tokens[il]);
+            if (g_router_count[il][e] > 0) {
+                total_sel++;
+                if (e > max_expert) max_expert = e;
+            }
         }
     }
     fclose(f);
+
+    // EXP-1: provenance manifest beside the CSV. Records what the capture
+    // SAW (observed expert width, layer span, selection coverage) against the
+    // array capacity, so a truncated or wrong-shape capture is mechanically
+    // inadmissible - the X-ray verdict failed exactly this check after the
+    // fact (a 256-expert model through the old [24][32] guards produced an
+    // empty or wrong-shape file).
+    char mpath[260 + 8];
+    snprintf(mpath, sizeof(mpath), "%s.manifest", g_router_log_path);
+    FILE * m = fopen(mpath, "w");
+    if (!m) return;
+    int observed_w = 0;
+    for (int il = 0; il < ROUTER_MAX_LAYERS; ++il) {
+        if (g_router_last_w[il] > observed_w) observed_w = g_router_last_w[il];
+    }
+    fprintf(m, "{\n");
+    fprintf(m, "  \"csv\": \"%s\",\n", g_router_log_path);
+    fprintf(m, "  \"authored_by\": \"daavfx_dspark_bridge router logger EXP-1\",\n");
+    fprintf(m, "  \"capacity_layers\": %d,\n", ROUTER_MAX_LAYERS);
+    fprintf(m, "  \"capacity_experts\": %d,\n", ROUTER_MAX_EXPERTS);
+    fprintf(m, "  \"observed_expert_width\": %d,\n", observed_w);
+    fprintf(m, "  \"observed_layer_span\": \"%d..%d\",\n",
+            max_layer < 0 ? -1 : min_layer, max_layer);
+    fprintf(m, "  \"layers_with_traffic\": %d,\n", layers_traffic);
+    fprintf(m, "  \"slots_with_selections\": %d,\n", (int) total_sel);
+    fprintf(m, "  \"truncated\": %s,\n",
+            (observed_w > ROUTER_MAX_EXPERTS || max_layer >= ROUTER_MAX_LAYERS) ? "true" : "false");
+    fprintf(m, "  \"note\": \"truncated=true means this capture CANNOT show the model's routing; reject it as verdict evidence\"\n");
+    fprintf(m, "}\n");
+    fclose(m);
 }
 
 static void router_log_capture_probs(int il, struct ggml_tensor * t) {
@@ -190,7 +229,7 @@ static bool davfx_dspark_eval_cb(struct ggml_tensor * t, bool ask, void * /*user
         return true;
     }
     // daavile fx: capture into the hook ring buffer; hidden size from ne[0].
-    // v1: host-resident tensors only — synchronous D2H inside eval_cb can
+    // v1: host-resident tensors only - synchronous D2H inside eval_cb can
     // deadlock the sched pipeline; device taps need an async readback (ticket).
     ggml_backend_buffer_t buf = t->buffer;
     if (buf && ggml_backend_buffer_is_host(buf)) {

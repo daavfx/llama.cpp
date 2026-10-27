@@ -10,30 +10,50 @@ Upstream synced to: `36cbf41` (2026-10-22, Flint support included)
 State: Flint merge prepared in a worktree, NOT committed. No build, no
 download, no benchmark was run for this documentation pass.
 
+## Break-the-1650 program
+
+`break1650/` - the self-contained plan folder for the GTX 1650 program
+(loading redesign, thinking-token economics, concurrent expert split, dGPU
+kernels). It is written to stand alone for an outside auditor: context,
+measured facts, trust ledger, full plan, experiments, prior runs, and
+correlated lanes. Start at `break1650/README.md`.
+
 The acceptance bench and its scorecards live in
 `F:\DAAVILE_ECOSYSTEM\trading_ecosystem_11\trading_ecosystem_9.0\main_ecosystem_trading\backtesting_pipeline\llm_bench\README.md`.
 
 ## Read in this order
 
 1. `REPO-MAP.md` - what is ours, what is upstream, where every artifact lives.
-2. `FLINT-UPSTREAM.md` - Flint facts, the merge, the build and bench pipeline.
-3. `moe-lab/README.md` - the completed LFM campaign (results, falsified ideas).
-4. `moe-lab/FLINT-CAMPAIGN.md` - the plan for the next model (not started).
-5. `TRACK-B-DISTILLATION.md` - teacher-to-student plan for a small local agent.
-6. `WIRE.md`, `BENCH.md`, `DAVFX-BUILD.md` - the existing overlay contract.
+2. `plans/README.md` - the design lanes (one index, one primitive table).
+3. `plans/context/` - the context/compaction reinvention (the newest plan).
+4. `plans/vault/` - the agent backend: isolation, per-surface vaults, the human section.
+5. `plans/loop/` - the harness self-improvement loop (onboarding, the Lane-A contract).
+6. `moe-lab/FLINT-UPSTREAM.md` - Flint facts, the merge, the build and bench pipeline.
+7. `break1650/README.md` - the GTX 1650 program (self-contained plan folder).
+8. `moe-lab/README.md` - the completed LFM campaign (results, falsified ideas).
+9. `moe-lab/FLINT-CAMPAIGN.md` - the plan for the next model.
+10. `TRACK-B-DISTILLATION.md` - teacher-to-student plan for a small local agent.
+11. `app-lane/` - the transport + UI lanes (wire bin, agent UI fixes, audit status).
+12. `skills/novel/` - the RAG chunk library (used by the audit lanes).
+13. `overlay/WIRE.md`, `overlay/BENCH.md`, `overlay/DAVFX-BUILD.md` - the existing overlay contract.
+14. `experimental-dgpu/` - the dGPU kernel experiments.
+
+Absent from this index means the folder does not exist as a lane; the
+`auditor-ISAYY/` and `auditor-MAX10/` records are audit runs over the plans,
+not lanes.
 
 ## Layout
 
 | Path | What it holds |
 |---|---|
-| `BENCH.md` | Measured overlay numbers: PPL identity, tap cost, speed rows |
-| `WIRE.md` | `daavfx_dspark` shared-memory layout and seqlock protocol |
-| `DAVFX-BUILD.md` | Original CPU build recipe for the overlay |
-| `overlay-vs-upstream.patch` | The tracked overlay patch against the old base |
+| `overlay/` | What the fork adds and how it is built: `WIRE.md`, `BENCH.md`, `DAVFX-BUILD.md`, `overlay-vs-upstream.patch` |
 | `REPO-MAP.md` | Complete ours-vs-upstream inventory |
-| `FLINT-UPSTREAM.md` | Flint merge state and usage contract |
-| `moe-lab/` | LFM campaign record plus the Flint campaign plan |
-| `TRACK-B-DISTILLATION.md` | Distillation plan for a small local tool agent |
+| `moe-lab/` | LFM campaign record, the Flint campaign plan, and `FLINT-UPSTREAM.md` (Flint merge state and usage contract) |
+| `break1650/` | The GTX 1650 program: self-contained plan folder for an outside auditor |
+| `plans/` | The design lanes; one index, one primitive table (PRIMITIVES.md) |
+| pp-lane/ | The transport + UI lanes: wire bin, agent UI fixes, audit status |
+| experimental-dgpu/ | The dGPU kernel experiments |
+| `TRACK-B-DISTILLATION.md` | Distillation plan for a small local tool agent (dormant until a dual-axis winner) |
 
 ## Hard rules
 

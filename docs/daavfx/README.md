@@ -4,11 +4,13 @@ This folder is the single source of truth for everything the DAAVFX agents
 added to `llama.cpp-abelianIUT`. Upstream llama.cpp documentation stays in
 `docs/` and is not duplicated here.
 
-Date: 2026-10-22
+Date: 2026-10-27
 Fork HEAD: `43011a618` (daavfx branch)
-Upstream synced to: `36cbf41` (2026-10-22, Flint support included)
-State: Flint merge prepared in a worktree, NOT committed. No build, no
-download, no benchmark was run for this documentation pass.
+Flint worktree: upstream `36cbf41` merged and COMMITTED; binary built
+(build 11832, commit `f92d149db`) and smoke-verified. The LFM3 merge
+(120 upstream commits) is COMMITTED (`0882f7c09`) and rebuilt: build 11833
+carries the lfm3 arch (`src/models/lfm3.cpp`, unity-batched in the llama
+target). Speed candidate measured, see `break1650\LFM3-CANDIDATE.md`.
 
 ## Break-the-1650 program
 
@@ -33,7 +35,7 @@ The acceptance bench and its scorecards live in
 8. `moe-lab/README.md` - the completed LFM campaign (results, falsified ideas).
 9. `moe-lab/FLINT-CAMPAIGN.md` - the plan for the next model.
 10. `TRACK-B-DISTILLATION.md` - teacher-to-student plan for a small local agent.
-11. `app-lane/` - the transport + UI lanes (wire bin, agent UI fixes, audit status).
+11. `aapp-lane/` - the transport + UI lanes (wire bin, agent UI fixes, audit status).
 12. `skills/novel/` - the RAG chunk library (used by the audit lanes).
 13. `overlay/WIRE.md`, `overlay/BENCH.md`, `overlay/DAVFX-BUILD.md` - the existing overlay contract.
 14. `experimental-dgpu/` - the dGPU kernel experiments.
@@ -51,7 +53,7 @@ not lanes.
 | `moe-lab/` | LFM campaign record, the Flint campaign plan, and `FLINT-UPSTREAM.md` (Flint merge state and usage contract) |
 | `break1650/` | The GTX 1650 program: self-contained plan folder for an outside auditor |
 | `plans/` | The design lanes; one index, one primitive table (PRIMITIVES.md) |
-| pp-lane/ | The transport + UI lanes: wire bin, agent UI fixes, audit status |
+| app-lane/ | The transport + UI lanes: wire bin, agent UI fixes, audit status |
 | experimental-dgpu/ | The dGPU kernel experiments |
 | `TRACK-B-DISTILLATION.md` | Distillation plan for a small local tool agent (dormant until a dual-axis winner) |
 
@@ -68,14 +70,16 @@ not lanes.
 
 | Artifact | Path | Status |
 |---|---|---|
-| Flint merge worktree | `..\..\..\llama.cpp-flint-wt` | uncommitted, zero conflicts |
-| Flint build script | `scripts\daavfx\build-flint-llama.ps1` | written, not run |
-| Flint quant fetch | `scripts\daavfx\fetch-flint-gguf.ps1` | written, not run |
-| Flint MT5 bench | `scripts\daavfx\run-flint-bench.ps1` | written, not run |
-| Flint quant sweep | `scripts\daavfx\flint-quant-sweep.ps1` | written, not run |
-| Harness v1.3 | `...\backtesting_pipeline\llm_bench\tools\bench_driver.ps1` | written, parse-checked |
-| Bench index | `...\backtesting_pipeline\llm_bench\README.md` | layout, standings, task spec |
-| moe-cache telemetry | worktree `src\llama-moe-cache.cpp` | ported to upstream SLRU, not compiled |
+| Flint merge (36cbf41) | `..\..\..\llama.cpp-flint-wt` | committed, zero conflicts |
+| Flint build script | `scripts\daavfx\build-flint-llama.ps1` | run, fixed, verified (build 11832) |
+| Flint quant fetch | `scripts\daavfx\fetch-flint-gguf.ps1` | run, verified (Q2_K_XL 12.63 GB, Q3_K_XL 17.22 GB) |
+| Flint quant sweep | `scripts\daavfx\flint-quant-sweep.ps1` | run; Q2 9/12 + Q3 5/12 quality (timeout-confounded); cards written |
+| LFM3 candidate | `local_llm\GGUF\llm-collection\29-lfm3-1.7b\` + gguf-play registry | downloaded (0.98 GB Q4_0) + registered; merge committed `0882f7c09`, built 11833; quality 7/12; E0 57.5 t/s decode (3x the 18.9 split record); MT5 agent worker-tier (probe launches the backtest; full run held at turn 19). Card: `break1650\LFM3-CANDIDATE.md` |
+| Bench driver v1.3.1 | `...\backtesting_pipeline\llm_bench\tools\bench_driver.ps1` | run 35+ benches; harness fixes landed (health-wait 600 s, LlamaServer param honored, leash moved to loop top); v1.3.1 fixed the -UseOpenAITools crash (ExtractActions List unroll -> -NoEnumerate) |
+| Cascade calibration | `break1650\CASCADE-GATE-CALIBRATION.md` | paper rung: the 0.5B-first cascade is dead for the agent lane on our own cards; LFM3 collapses its premise |
+| Router logger EXP-1 | worktree + main `src\daavfx_dspark_bridge.cpp` | provenance manifest + validator (self-test PASS) |
+| Scoreboard + truth log | `llm_bench\SCOREBOARD.md`, `auditor-ISAYY\batch1\01b-trigger-compiler.md` | 5.9x prefill monster = usage-reporting artifact; thinking tax 77-79% is the top cost |
+| Harness repo | `shared\daavile_harness\daavilefx_harness` | main at `9139563f` (seal fix + context step12 merged, lossless) |
 
 ## Commands (documented only, do not run yet)
 

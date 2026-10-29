@@ -73,13 +73,22 @@ result to the moe-lab lane (it closes their row update 25).
 **H3 - the OptChat end-to-end proof (after H1).** WHAT-WAS-BUILT.md Tier 1 #1:
 one real long session that crosses the compaction threshold; watch the view
 replacement, zoom, and the universe distiller. Document what fired in
-WHAT-WAS-BUILT.md's honest-state section.
+WHAT-WAS-BUILT.md's honest-state section. NOTE (context step12, 2026-10-27):
+the daavile profile now carries production knobs - the 0.0005 threshold that
+could never converge (a 65-token trigger against a ~128-token leaf) is
+reverted, and compaction is pinned to its own provider/model. Only a genuinely
+long session fires compaction now; the durability + token-twin work is
+landed and spec-covered (21/21).
 
-**H2 - X-ray on Flint (WAIT for the infra agent).** Only after the infra
-agent builds the merged fork and fetches Q2_K_XL. You run the X-ray kit
-(moe-lab RESULTS.md) with DAAVFX_ROUTER_LOG over a short session and write the
-verdict row (load-balanced vs harvestable cold tail) into
-moe-lab\FLINT-CAMPAIGN.md. That verdict gates the infra agent's quant sweep.
+**H2 - X-ray on Flint (UNBLOCKED).** The infra agent has built the merged fork
+(build 11832) and Q2_K_XL is on disk. Run the X-ray kit (moe-lab RESULTS.md)
+with DAAVFX_ROUTER_LOG over a short session and write the verdict row
+(load-balanced vs harvestable cold tail) into
+moe-lab\FLINT-CAMPAIGN.md. Prerequisite: ask the infra agent for the EXP-2
+capture-channel repair first - post-merge builds log zero selections (the
+topk dispatch dies on I64), and the q2xl-initial capture the first verdict
+used was topologically impossible for Flint anyway. That verdict gates the
+infra agent's quant sweep.
 
 ## Hard rules (all lanes)
 

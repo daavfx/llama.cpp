@@ -24,8 +24,8 @@ substrate-gap root-cause is queued for the capture window (G-4/1d receipts).
 | Reuse + storage lane (MoE) | this program | P0 io_engine, P1 thinking tax, R1/R2 prefix reuse, loader levels |
 | Bench + audit lane | this program | scorecards, trust ledger, doc rot, seal mandate |
 | moe-lab lane | archived | closed; instruments inherited |
-| Harness lane | operator + coder | Batch-1 report in flight (not landed); seal fix committed `50b1a6d0` (unpushed) |
-| App lane | operator | app-lane docs + patches post two must-fixes |
+| Harness lane | operator + coder | Batch-1 landed + sealed; repo `main` at `9139563f` (seal containment `50b1a6d0` + context step12 `37294cb2`/`9139563f` merged lossless after the seal-lane race; gates 21/21 specs, tsc 0, verify-cordis-config 274) |
+| App lane | operator | app-lane docs + patches post two must-fixes; ORCA-DRIFT queued: re-pin the skill-install rail (SKILLS_CLI_VERSION 1.7.2 + `/tree/<sha>`), seven missing dependency patches, legacy-relay retirement decision (2027-01-15; we compile 468 files of it), test-suite gap note (205 files vs upstream 1,233) |
 
 ## EXP - the experimental lane (from the router forensics + operator's auto-tune question)
 
@@ -46,7 +46,7 @@ one capture window after.
 | A2 | 1b trigger compiler: price the 5.9x prefill monster; test the usage-reporting hypothesis (104,499 = full prompt length, not processed tokens); emit the instrument ask for the capture window | kernel lane | none | **DONE** (`01b-trigger-compiler.md`): 5.9x is a usage-reporting artifact; real processed prefill = 29,225 tok / 554.9s; R1/R2 ceiling is 32% of wall, not 5.9x |
 | A3 | 1g ledger diff PREPARED not landed (rows 2/8 -> VERIFIED, count drift) | kernel lane | operator stamp | propose-first law |
 | A4 | G-4 shader-path audit: `NVIDIA_PRE_TURING` classification paths + the 162 .comp set vs what the backend selects on TU117; top-5 kernel gaps | kernel lane | none (pure reads); do not touch the coder's files | the kernel-lane report's Phase A, per EXECUTION |
-| A5 | Wait for the coder's Batch-1 report | both | - | lands before B1 |
+| A5 | Wait for the coder's Batch-1 report | both | - | LANDED - coder's context step12 merged (see Harness lane row) |
 
 ## Phase B - one CPU-only window (green light; safe while the operator works)
 
@@ -82,6 +82,7 @@ later window). Ad-hoc runs banned: nothing contaminates each stamp.
 | D3 | axis C stays quarantined; seal-grep gate before any corpus build over `backtesting_pipeline` |
 | D4 | Re-rank prefetch/pump ONLY if the capture reports latency-bound stalls |
 | D5 | Kernel experiments ranked by Phase A/B findings: coopmat -> prefill GEMM; then tiled dequant-GEMV (E2a); MMQ int path; sparse-residency streaming prototype behind capture + VRAM-bw; E2b dual-issue; E2c L-Mul last |
+| D6 | LFM3-1.7B wave verdict (2026-10-28): speed-lane record - 57.5 t/s decode full-VRAM, 3x the 18.9 split config; quality 7/12 vs the 4B baseline 8/12; MT5 agent worker-tier - the native-tools probe launches tester_run_backtest (12 actions / 0 refusals), the full run degraded after a 32k ctx overflow and was HELD at turn 19. Re-run decision: 49k ctx / lower ResultCap, or bank worker-tier | card `LFM3-CANDIDATE.md`; operator call |
 
 ## Explicitly banned or excluded
 

@@ -21,7 +21,7 @@ any integration decision. `HEX-DRIFT-LOG.jsonl` is the machine record.
 |---|---|
 | Clone | `shared/hex-original` (depth 1; deepen with `-Fetch` to 50) |
 | Upstream HEAD | `aa3059a` — "Fix #624: cancel dictation shortcut on KDE Wayland (#628)" |
-| Last recorded SHA | `aa3059a` |
+| Last recorded SHA: `aa3059a` (2026-10-31, 14:05 UTC) | |
 | Reachable tags at baseline | none (shallow clone; `-Fetch` pulls tags) |
 | License | MIT (they do not accept outside PRs — the repo is a product, not a library) |
 | Windows posture | beta, x64 + ARM64, not code-signed, **no packaged native helper yet** (SDK consumers must spawn an installed `hex service --embedded`) |

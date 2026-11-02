@@ -1,18 +1,18 @@
-# DAAVILE Harness — Proposal: The Self-Improvement Loop
+# DAAVILE Harness - Proposal: The Self-Improvement Loop
 
 ## The one-sentence pitch
 
 Agents that improve the harness, agents that improve the models, and a
-memory system that remembers why — all running on the operator's desktop,
+memory system that remembers why - all running on the operator's desktop,
 fed by the eval harness that scores everything.
 
 ---
 
 ## The three lanes
 
-### Lane A — the eval harness (the gate)
+### Lane A - the eval harness (the gate)
 
-Every improvement loop needs a score. Without one: Harness² can't judge
+Every improvement loop needs a score. Without one: Harness^2 can't judge
 harness edits, Athanor can't compare models, the fleet can't measure whether
 anything got better.
 
@@ -22,7 +22,7 @@ anything got better.
   looks like for their strategies, their vault data, their logic configs).
 - A scoring runner: sends the tasks to a model (via `ctx.llm.stream` or
   llama-server directly), checks the answers, produces a score.
-- A leaderboard: `~/.dsh/memory/evals/<model>.jsonl` — append-only, per
+- A leaderboard: `~/.dsh/memory/evals/<model>.jsonl` - append-only, per
   model, per run, per timestamp.
 
 **The tasks** (examples the operator would author):
@@ -40,19 +40,19 @@ the runner = mechanical.
 
 ---
 
-### Lane B — the Harness² template (agents improve the harness)
+### Lane B - the Harness^2 template (agents improve the harness)
 
 Once the eval harness exists, this becomes real:
 
 **The fleet template** (a three-agent roster):
-1. **The proposer** — reads the task + the lessons library, proposes a
+1. **The proposer** - reads the task + the lessons library, proposes a
    harness edit (a prompt change, a new skill, a tool guidance tweak).
-2. **The prober** — runs the eval harness twice: once with the base
+2. **The prober** - runs the eval harness twice: once with the base
    harness, once with the edit. Reports the contrast.
-3. **The composer** — judges the contrast (did the behavior change? did the
+3. **The composer** - judges the contrast (did the behavior change? did the
    score improve?), adopts or rejects, records the lesson.
 
-**The lessons library**: `~/.dsh/memory/harness-lessons.jsonl` —
+**The lessons library**: `~/.dsh/memory/harness-lessons.jsonl` -
 append-only:
 ```json
 {
@@ -70,31 +70,31 @@ becomes the harness's institutional memory.
 
 ---
 
-### Lane C — the Athanor template (agents improve the models)
+### Lane C - the Athanor template (agents improve the models)
 
 The model-improvement sibling, sized to the operator's desktop:
 
-**Phase 1 — the GGUF leaderboard** (uses Lane A's eval harness):
+**Phase 1 - the GGUF leaderboard** (uses Lane A's eval harness):
 - Score all 24 GGUFs on the trading tasks.
 - Record per-model scores in the leaderboard.
 - The agents read the leaderboard and decide what to try.
 
-**Phase 2 — the merge experiments**:
+**Phase 2 - the merge experiments**:
 - mergekit merges two GGUF-convertible models (CPU-only, cheap).
 - The merged model is scored on the eval harness.
 - The agents compare against the parents and decide: keep, discard, or
   stack another merge.
 
-**Phase 3 — distillation** (when the compute allows):
+**Phase 3 - distillation** (when the compute allows):
 - The best-performing model generates training data (the operator's
   trading tasks with model-generated reasoning).
-- SFT/LoRA on a small model (4B at Q4 fits in ~3GB — the iGPU+dGPU can
+- SFT/LoRA on a small model (4B at Q4 fits in ~3GB - the iGPU+dGPU can
   train with aggressive offloading).
 - Convert back to GGUF, score, record.
 
-**What's NOT in scope** (honest): the Athanor paper's agents had 8×H100
+**What's NOT in scope** (honest): the Athanor paper's agents had 8xH100
 per agent and ran 104 hours. Full RL + self-distillation at that scale is
-a datacenter budget. The DAAVILE version = eval + merge + light SFT —
+a datacenter budget. The DAAVILE version = eval + merge + light SFT -
 the improvement loop without the training farm.
 
 ---
@@ -103,9 +103,9 @@ the improvement loop without the training farm.
 
 ```
 Lane A (eval harness)
-  ├─► Lane B (Harness² template) — uses eval to judge harness edits
-  ├─► Lane C (Athanor template) — uses eval to score models
-  └─► both feed the OptChat memory (the universe records WHY)
+  |-> Lane B (Harness^2 template) - uses eval to judge harness edits
+  |-> Lane C (Athanor template) - uses eval to score models
+  `-> both feed the OptChat memory (the universe records WHY)
 ```
 
 Lane A is the gate. Without a score, nothing else measures improvement.
@@ -114,12 +114,12 @@ Lane A is the gate. Without a score, nothing else measures improvement.
 
 ## What the operator authors (the only human-in-the-loop part)
 
-1. **The trading tasks** (10-20 questions with answers) — 30-60 min of
+1. **The trading tasks** (10-20 questions with answers) - 30-60 min of
    operator time, the highest-leverage hour in this entire proposal.
-2. **The improvement priorities** — which dimension matters most: correct
+2. **The improvement priorities** - which dimension matters most: correct
    logic-config recall? backtest reasoning? vault data lookup? code
    generation for strategies?
-3. **The accept/reject calls** — the agents propose, the operator reviews
+3. **The accept/reject calls** - the agents propose, the operator reviews
    the evidence and says yes/no (or trusts the eval score alone once it's
    calibrated).
 
@@ -127,7 +127,7 @@ Lane A is the gate. Without a score, nothing else measures improvement.
 
 ## What this is NOT
 
-- **Not a training farm.** The Athanor paper's full post-training at 8×H100
+- **Not a training farm.** The Athanor paper's full post-training at 8xH100
   scale is a datacenter budget. We do eval + merge + light SFT.
 - **Not a SaaS.** Everything runs on the operator's desktop, in the
   operator's home directory, on the operator's models.
@@ -141,13 +141,13 @@ Lane A is the gate. Without a score, nothing else measures improvement.
 
 ## The ask
 
-1. **Author the trading tasks** (the operator, 30-60 min) — the gate for
+1. **Author the trading tasks** (the operator, 30-60 min) - the gate for
    everything.
-2. **I build the eval runner** (one session) — the scorer, the leaderboard,
+2. **I build the eval runner** (one session) - the scorer, the leaderboard,
    the `eval` fleet command.
-3. **I build the Harness² template** (one session) — the proposer/prober/
+3. **I build the Harness^2 template** (one session) - the proposer/prober/
    composer roster, the lessons library.
-4. **I build the GGUF leaderboard** (one session) — the Phase 1 Athanor
+4. **I build the GGUF leaderboard** (one session) - the Phase 1 Athanor
    template (score all 24 GGUFs, the agents read the scores).
 
 Lanes B and C can run in parallel once Lane A exists. Each produces
@@ -159,8 +159,8 @@ append-only evidence the OptChat universe remembers.
 
 ### Wuwe (C++20 agent framework, Apache-2.0, github.com/lkimuk/Wuwe)
 
-Not a dependency — the C++ SDK does not fit the TS/Node stack. But two
-design patterns upgrade the Harness²/Athanor lanes from "agents try things
+Not a dependency - the C++ SDK does not fit the TS/Node stack. But two
+design patterns upgrade the Harness^2/Athanor lanes from "agents try things
 and record results" to "agents follow a governed improvement process":
 
 **1. The learning/adaptation ledger.** Wuwe's module: "experience and
@@ -170,24 +170,24 @@ gates, approvals, activation, and rollback." Our lessons library
 versioned artifacts (not just JSONL lines), regression gates (the eval
 score must not drop below a threshold before the edit is kept), and
 explicit activation/rollback (an edit is staged, tested, activated, or
-rolled back — not just "adopted" or "rejected").
+rolled back - not just "adopted" or "rejected").
 
 **2. Bounded exploration and discovery.** "Bounded hypotheses, controlled
 experiments, evidence review, persistence, and an explicit Learning
-evidence adapter." The key insight: agents do not experiment freely —
+evidence adapter." The key insight: agents do not experiment freely -
 each hypothesis has a compute budget, each experiment has pre-registered
 success criteria, and the evidence adapter feeds the ledger. This is the
 Athanor pattern with engineering guardrails.
 
-Also noted: the A2A (Agent-to-Agent) module — Agent Cards, Messages,
+Also noted: the A2A (Agent-to-Agent) module - Agent Cards, Messages,
 Tasks, Artifacts, discovery, JSON-RPC. A standard protocol for agent
 interoperability that could replace the ad-hoc mailbox system for fleet
 worker communication. Parked.
 
 ### SGLang HiCache (parked)
 
-Hierarchical KV caching: GPU (L1) → CPU (L2) → storage (L3), 15.5x input
+Hierarchical KV caching: GPU (L1) -> CPU (L2) -> storage (L3), 15.5x input
 throughput, ~98% cache hits on multi-turn. The OptChat view's
 cache-stability design is the client-side counterpart. If llama-server is
 ever swapped for SGLang, the OptChat view gets its full payoff on-device.
-Not actionable today — parked as the serving-stack upgrade path.
+Not actionable today - parked as the serving-stack upgrade path.

@@ -116,6 +116,44 @@ GGUFs kept as the record (root of the fork and `F:\llvb`).
   `git -C` on it fails and `git worktree list` reports it `prunable` - use
   `--git-dir`/`--work-tree` to read it. And `src/models/lfm3.cpp` +
   `src/models/flint.cpp` exist ONLY on this branch, not on `daavfx`.
+
+  ## 6b. Why Flint is not on `daavfx` (measured 2026-11-01, operator call)
+
+  Bringing the two source files onto `daavfx` is NOT a cherry-pick. The two
+  branches have genuinely diverged from merge base `43011a618` (2026-10-15):
+
+  | direction | commits |
+  |---|---:|
+  | `mod/flint-support` ahead of `daavfx` | 283 |
+  | `daavfx` ahead of `mod/flint-support` | 17 |
+
+  So a real merge (not a fast-forward) is required, it touches the whole
+  tree, and the flint worktree is carrying **3,891 dirty files** against
+  its own HEAD - essentially the tree renormalised for line endings, which
+  is exactly the kind of change that either gets committed by accident or
+  produces conflicts at scale. The audit mandate attached to this folder
+  (auditor-ISAYY FINAL-REPORT, mandate 3) forbids reset/clean/worktree
+  overwrite without an explicit operator instruction, and this operation is
+  well inside that boundary.
+
+  NOT DONE - left as an explicit decision. The two files are small
+  (`src/models/lfm3.cpp` 197 lines, `src/models/flint.cpp` 194 lines) and
+  content-stable against `0882f7c09`, so if the operator wants them on
+  `daavfx` the cheap path is a path-scoped copy plus an INFLIGHT row, not a
+  branch merge. Verification anchors if that path is taken:
+
+  - `git show mod/flint-support:src/models/lfm3.cpp` (197 lines)
+  - `git show mod/flint-support:src/models/flint.cpp` (194 lines)
+  - worktree copies differ from the committed blobs (flint.cpp and lfm3.cpp
+    were both edited after the merge), so copy from the *branch*, not the
+    worktree, unless the newer working copy is wanted.
+
+  Related, same decision class: `docs/daavfx/skills/novel/` is entirely
+  UNTRACKED (0 files under git) though `README.md` and `plans/vault/` both
+  cite it as a live lane. Its two agent descriptors also carried broken
+  relative paths (`../../core` from `agents/` resolves to `skills/core`,
+  which does not exist); corrected to `../core` in the working tree on
+  2026-11-01. Whether the layer is committed is the operator's call.
 - Worktree carries the overlay copy: `docs/daavfx/` (all), `scripts/daavfx/`,
   `daavfx_helpers/`, `INFLIGHT.md`, `asm_preload.cmake`, the dspark bridge
   patch, and the moe-cache telemetry port.

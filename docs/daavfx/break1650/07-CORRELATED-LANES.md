@@ -15,7 +15,7 @@ stay compatible.
 | Harness^2 template spec (proposer/prober/composer) | types + fleet JSON, no dispatch implementation | the future lane that would automate running experiments from this register |
 | OptChat end-to-end proof (H3) | **pending a real long session by the operator** | none directly; it is the harness memory proof, not a perf surface |
 | Git history | pushed commits `b64fe849`, `71db9d85`, `eb87f9b9` in `daavfx/daavile-harness` | the lane keeps its own INFLIGHT ledger; the auditor's findings landed there |
-| Contract doc (`docs/daavfx/harness/LANE-A-CONTRACT.md`) | normative: shell out to the runners, never re-implement scoring; the sealed ground truth never enters prompts | read it before touching anything harness-side |
+| Contract doc (`plans/loop/LANE-A-CONTRACT.md`) | normative: shell out to the runners, never re-implement scoring; the sealed ground truth never enters prompts | read it before touching anything harness-side |
 
 ## The quantum app (Tauri) - operator's daily surface
 

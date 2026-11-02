@@ -47,8 +47,8 @@ engine. The new work is the *accounting layer*: per-item sizes + costs
 attached to the log, and the budget decision made against them.
 
 **Recombination (distance bonus):** KV-cache eviction policy (CoDA-GQA-L's
-ring buffer + novelty bank + EMA centroids, transcribed R2) ×
-compaction-as-accounting (the log's per-item sizes) × contradiction
+ring buffer + novelty bank + EMA centroids, transcribed R2) x
+compaction-as-accounting (the log's per-item sizes) x contradiction
 reconciliation (transcribed R3, the 57/21/73 receipt). The eviction
 literature assumes a trained model; here the "training signal" is the
 measured per-item cost and the contradiction events already emitted by the

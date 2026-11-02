@@ -18,10 +18,13 @@ The operator is the only human. Nothing gets committed or pushed without him.
 ## The three places you must know
 
 1. **The harness docs you already have**: this folder
-   (`docs\daavfx\harness\`): PROPOSAL.md, WHAT-WAS-BUILT.md,
+   (`docs/daavfx/plans/loop/`): PROPOSAL.md, WHAT-WAS-BUILT.md,
    WHATS-MISSING.md, plus LANE-A-CONTRACT.md (your adapter spec) and this
    file. LANE-A-CONTRACT.md is the contract between you and the bench
    runners - it is normative, not background.
+   NOTE (2026-11-01): this doc used to live at `docs/daavfx/harness/`. That
+   path is gone; every reference to it was repointed here in commit
+   `2712a593f`. Read this folder, not the old one.
 2. **The bench** (infra lane, do not modify):
    `F:\DAAVILE_ECOSYSTEM\trading_ecosystem_11\trading_ecosystem_9.0\main_ecosystem_trading\backtesting_pipeline\llm_bench\`
    - `SCOREBOARD.md` - the dual-axis keep/drop table (READ THIS FIRST)
@@ -87,8 +90,11 @@ with DAAVFX_ROUTER_LOG over a short session and write the verdict row
 moe-lab\FLINT-CAMPAIGN.md. Prerequisite: ask the infra agent for the EXP-2
 capture-channel repair first - post-merge builds log zero selections (the
 topk dispatch dies on I64), and the q2xl-initial capture the first verdict
-used was topologically impossible for Flint anyway. That verdict gates the
-infra agent's quant sweep.
+used was topologically impossible for Flint anyway. That verdict is now
+WITHDRAWN with a derived replacement - see `moe-lab/FLINT-CAMPAIGN.md`
+section 9: surgery (amputation) is dead, hot-set caching is alive and
+priced at 43.4% hit for a 3.22 GB cache that couples to the P0 io_engine.
+That replacement, not the withdrawn verdict, gates the quant sweep.
 
 ## Hard rules (all lanes)
 

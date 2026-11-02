@@ -34,6 +34,7 @@ static const std::map<llm_arch, const char *> LLM_ARCH_NAMES = {
     { LLM_ARCH_QWEN2MOE,         "qwen2moe"         },
     { LLM_ARCH_QWEN2VL,          "qwen2vl"          },
     { LLM_ARCH_QWEN3,            "qwen3"            },
+    { LLM_ARCH_FLINT,            "flint"            },
     { LLM_ARCH_QWEN3MOE,         "qwen3moe"         },
     { LLM_ARCH_QWEN3NEXT,        "qwen3next"        },
     { LLM_ARCH_QWEN3VL,          "qwen3vl"          },
@@ -164,6 +165,7 @@ static const std::map<llm_arch, const char *> LLM_ARCH_NAMES = {
     { LLM_ARCH_QWEN3TTS,         "qwen3tts"         },
     { LLM_ARCH_POCKETTTS,        "pockettts"        },
     { LLM_ARCH_K2_HORIZON,       "k2-horizon"       },
+    { LLM_ARCH_LFM3,             "lfm3"             },
     { LLM_ARCH_UNKNOWN,          "(unknown)"        },
 };
 
@@ -1200,6 +1202,7 @@ bool llm_arch_is_hybrid(const llm_arch & arch) {
         case LLM_ARCH_GRANITE_HYBRID:
         case LLM_ARCH_LFM2:
         case LLM_ARCH_LFM2MOE:
+        case LLM_ARCH_LFM3:
         case LLM_ARCH_NEMOTRON_H:
         case LLM_ARCH_NEMOTRON_H_MOE:
         case LLM_ARCH_QWEN3NEXT:
@@ -1242,6 +1245,7 @@ bool llm_arch_supports_rs_rollback(const llm_arch & arch) {
         case LLM_ARCH_NEMOTRON_H_MOE:
         case LLM_ARCH_LFM2:
         case LLM_ARCH_LFM2MOE:
+        case LLM_ARCH_LFM3:
         case LLM_ARCH_BAILINGMOE3:
             return true;
         default:
@@ -1287,10 +1291,12 @@ bool llm_arch_supports_sm_tensor(const llm_arch & arch) {
         case LLM_ARCH_NEMOTRON_H:
         case LLM_ARCH_NEMOTRON_H_MOE:
         case LLM_ARCH_GRANITE_HYBRID:
+        case LLM_ARCH_LFM3:
         case LLM_ARCH_MINIMAX_01:
         case LLM_ARCH_MINIMAX_M2:
         case LLM_ARCH_MINIMAX_M3:
         case LLM_ARCH_MISTRAL4:
+        case LLM_ARCH_FLINT:
         case LLM_ARCH_KIMI_LINEAR:
         case LLM_ARCH_BAILINGMOE3:
         case LLM_ARCH_KIMI_K3:

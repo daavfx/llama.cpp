@@ -26,7 +26,7 @@ bandwidth, and our own measurement confirms it.
 | Level | What | Complexity | Status |
 |---|---|---|---|
 | L0 | stock mmap (today) | zero | baseline |
-| L1 | **Model warmer**: a pre-loader that reads the whole GGUF *sequentially* into the file cache before llama.cpp opens it. A sequential 1M read costs ~16.7 ms on this HDD (~65 GB/s aggregate vs 12 ms per random 4K = ~0.35 GB/s). No fork change, works for any loader, any drive | low | **P0 Phase 1** |
+| L1 | **Model warmer**: a pre-loader that reads the whole GGUF *sequentially* into the file cache before llama.cpp opens it. A sequential 1M read costs ~16.7 ms on this HDD (= 59.9 MB/s aggregate vs 12 ms per random 4K = 0.34 MB/s, a 175x gap in the warmer's favour). No fork change, works for any loader, any drive | low | **P0 Phase 1** |
 | L2 | **OVERLAPPED async read engine + `PrefetchVirtualMemory`**: multiple outstanding reads at tuned depth (2 on HDD, 8+ on NVMe), read-ahead thread, adapter-selected by media type (HDD/USB: sequential-cluster mode; NVMe: parallel-depth mode) - the Kittyhawk `io_engine` design | medium | P0 Phase 2 (needs fork or loader injection) |
 | L3 | **Content-aware sequential order**: read the GGUF header, learn the model's tensor schedule, and pre-stage tensors in *load order* so llamacpp's first-touch faults hit warm cache pages | medium | P0 Phase 2.5 |
 | L4 | **Co-activation cluster layout**: from router traces (the 48x256 logger), group experts that fire together and rewrite the GGUF so a cluster is one contiguous run - a sequential read grabs a whole pre-activation set | high | P0 Phase 3 (needs traces + a convert pass) |
@@ -109,7 +109,11 @@ synth time beats the solo time before touching the engine.
 ## P3 - The dGPU squeeze (the operator's sanctioned "every good, bad and stupid idea" - kernels)
 
 Target: the measured gap between 3,179 GFLOPS achieved and ~6 TFLOP
-theoretical on TU117, and the prefill disaster (0.14-0.39 t/s pp on Flint).
+theoretical on TU117. (The "0.14-0.39 t/s pp on Flint" figure this section
+earlier quoted as the motivating disaster is WITHDRAWN: it was a cold-start
+reading. `auditor-ISAYY\batch1\01a` re-derived the same server log as
+11.1-14.5 t/s prompt-eval / 7.7-9.2 t/s generation warm, a ~20-50x
+acceleration within one 12-task session.)
 
 | Experiment | Idea | Note |
 |---|---|---|

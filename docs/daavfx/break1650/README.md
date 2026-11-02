@@ -38,7 +38,7 @@ The program was born from three convergences:
 | `README.md` | this file - the brief |
 | `00-CONTEXT.md` | hardware, software stack, lanes, standing rules, what is correlated elsewhere |
 | `01-MEASURED-FACTS.md` | every number with provenance (E0, storage, campaign, archive-verified) |
-| `02-TRUST-LEDGER.md` | the claim classification (17 verified / 13 falsified / 14 testable), copied in full |
+| `02-TRUST-LEDGER.md` | the claim classification (16 verified / 13 falsified / 14 testable), copied in full |
 | `03-THE-PLAN.md` | P0-P4: the full program with gates and falsifiable hypotheses |
 | `04-LOADER-DEEP-DIVE.md` | the model-loading redesign - from stock mmap to an LLM-era layout compiler (the operator's explicit priority) |
 | `05-EXPERIMENTS.md` | the executable experiment list: hypothesis, one settling test, cost, gate, owner |
@@ -51,8 +51,10 @@ The program was born from three convergences:
 ## The one-paragraph thesis
 
 On this box the enemy is **bytes moved per token**, not FLOPS: decode at
-18.9 t/s on an 8B MoE uses ~94 GFLOPS (trivial) while streaming ~0.85 GB of
-expert weights per token from a 7200rpm HDD-class store (brutal). Every
+18.9 t/s on an 8B MoE uses ~94 GFLOPS (trivial) while streaming ~0.54 GB of
+expert weights per token from a 7200rpm HDD-class store (brutal) - the 0.54
+is the measured pair (`05-EXPERIMENTS.md` EXP-3: 10.2 GB/s at 18.9 t/s);
+the 0.85 this paragraph used to carry was 58% high and unreconciled. Every
 lever in this program either **shrinks bytes** (precision depth-map, expert
 surgery when the hot set is real), **hides bytes** (copy-stream staging
 rings, router-guided prefetch, concurrent theater reads), or **moves bytes

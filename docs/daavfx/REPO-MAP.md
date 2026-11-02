@@ -1,11 +1,13 @@
 # REPO-MAP - ours vs upstream
 
-Date: 2026-10-22
+Date: 2026-11-01
 Fork root: `F:\DAAVILE_ECOSYSTEM\trading_ecosystem_11\trading_ecosystem_9.0\shared\llama.cpp-abelianIUT`
 Origin: `https://github.com/daavfx/llama.cpp.git` (private)
 Upstream: local clone `..\llama.cpp-original`, master `36cbf41`
-Branch: `daavfx`, HEAD `43011a618` (2026-10-15)
-Flint worktree: `..\llama.cpp-flint-wt`, branch `mod/flint-support`, merge staged, NOT committed
+Branch: `daavfx`, HEAD `83f03cd10` (2026-10-31); `origin/daavfx` is at
+`eca00f9f9`, so this branch is 8 commits ahead and unpushed.
+Flint worktree: `..\llama.cpp-flint-wt`, branch `mod/flint-support`, merge
+COMMITTED `0882f7c09` (2026-10-28, "merge upstream LFM3 support (120 commits)").
 
 ## The short answer
 
@@ -36,13 +38,13 @@ and `src/llama-moe-cache.cpp` (+73). Everything else in `src/` is clean.
 |---|---|---|
 | `docs/daavfx/README.md` | new | Front door for this folder |
 | `docs/daavfx/REPO-MAP.md` | new | This file |
-| `docs/daavfx/FLINT-UPSTREAM.md` | new | Flint merge and pipeline |
-| `docs/daavfx/TRACK-B-DISTILLATION.md` | new | Teacher-to-student plan |
+| `docs/daavfx/moe-lab/FLINT-UPSTREAM.md` | new | Flint merge and pipeline |
+| `docs/daavfx/TRACK-B-DISTILLATION.md` | new | Teacher-to-student plan (dormant) |
 | `docs/daavfx/moe-lab/FLINT-CAMPAIGN.md` | new | Next-model campaign plan |
-| `docs/daavfx/BENCH.md` | tracked | PPL identity, tap cost, speed rows |
-| `docs/daavfx/WIRE.md` | tracked | `daavfx_dspark` SHM contract |
-| `docs/daavfx/DAVFX-BUILD.md` | tracked | CPU/MSVC build recipe |
-| `docs/daavfx/overlay-vs-upstream.patch` | tracked | Full delta vs old base `edd6e2b` |
+| `docs/daavfx/overlay/BENCH.md` | tracked | PPL identity, tap cost, speed rows |
+| `docs/daavfx/overlay/WIRE.md` | tracked | `daavfx_dspark` SHM contract |
+| `docs/daavfx/overlay/DAVFX-BUILD.md` | tracked | CPU/MSVC build recipe |
+| `docs/daavfx/overlay/overlay-vs-upstream.patch` | tracked | Full delta vs old base `edd6e2b` |
 | `docs/daavfx/moe-lab/README.md` | untracked | LFM campaign index |
 | `docs/daavfx/moe-lab/RESULTS.md` | untracked | Production configs, thesis, falsification ledger, X-ray kit |
 | `docs/daavfx/moe-lab/FORK-CHANGES.md` | untracked | Manifest of campaign changes |
@@ -98,17 +100,22 @@ GGUFs kept as the record (root of the fork and `F:\llvb`).
 | `build_vulkan_bin/` | Current `llama-server.exe`, build 11671, commit `43011a618` | NO |
 | `build_vulkan_bench/` | Campaign build with bench/quantize/server | NO |
 | `build_cpu_mod/` | Older CPU build | NO |
-| `..\llama.cpp-flint-wt\build_flint\` | Planned merged build (script ready) | YES, after build |
+| `..\llama.cpp-flint-wt\build_flint\` | BUILT - build 11833 (commit `b2a60bb67`); `llama-server.exe` + `llama-cli.exe` present, rebuilt with the LFM3 merge | YES |
 | `F:\llvb` | Junction to the fork root, needed for MAX_PATH | n/a |
 | `F:\llvb_flint` | Junction to the Flint worktree, planned | n/a |
 | `F:\qapp` | Quantum app cargo junction, unrelated | n/a |
 
 ## 6. Git state
 
-- `daavfx`: one local branch, HEAD `43011a618`; no commit for the campaign.
+- `daavfx`: HEAD `83f03cd10` (2026-10-31), 8 commits ahead of `origin/daavfx`
+  (`eca00f9f9`), unpushed.
 - `upstream/master`: `36cbf41` (2026-10-22), 155 commits ahead of daavfx.
-- Worktree `mod/flint-support`: merge done with zero conflicts, still in merge
-  state ("All conflicts fixed but you are still merging"), no commit.
+- Worktree `mod/flint-support`: merge COMMITTED `0882f7c09` (2026-10-28);
+  not in merge state. Two traps for anyone inspecting it: the worktree's
+  `.git` gitfile points at `F:/DAAVILE_ECOSYSTEM/...`, so under WSL
+  `git -C` on it fails and `git worktree list` reports it `prunable` - use
+  `--git-dir`/`--work-tree` to read it. And `src/models/lfm3.cpp` +
+  `src/models/flint.cpp` exist ONLY on this branch, not on `daavfx`.
 - Worktree carries the overlay copy: `docs/daavfx/` (all), `scripts/daavfx/`,
   `daavfx_helpers/`, `INFLIGHT.md`, `asm_preload.cmake`, the dspark bridge
   patch, and the moe-cache telemetry port.

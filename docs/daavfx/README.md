@@ -4,8 +4,9 @@ This folder is the single source of truth for everything the DAAVFX agents
 added to `llama.cpp-abelianIUT`. Upstream llama.cpp documentation stays in
 `docs/` and is not duplicated here.
 
-Date: 2026-10-27
-Fork HEAD: `43011a618` (daavfx branch)
+Date: 2026-11-01
+Fork HEAD: `83f03cd10` (daavfx branch, 2026-10-31). `origin/daavfx` sits at
+`eca00f9f9`, so this branch is 8 commits ahead and unpushed.
 Flint worktree: upstream `36cbf41` merged and COMMITTED; binary built
 (build 11832, commit `f92d149db`) and smoke-verified. The LFM3 merge
 (120 upstream commits) is COMMITTED (`0882f7c09`) and rebuilt: build 11833
@@ -35,7 +36,7 @@ The acceptance bench and its scorecards live in
 8. `moe-lab/README.md` - the completed LFM campaign (results, falsified ideas).
 9. `moe-lab/FLINT-CAMPAIGN.md` - the plan for the next model.
 10. `TRACK-B-DISTILLATION.md` - teacher-to-student plan for a small local agent.
-11. `aapp-lane/` - the transport + UI lanes (wire bin, agent UI fixes, audit status).
+11. `app-lane/` - the transport + UI lanes (wire bin, agent UI fixes, audit status).
 12. `skills/novel/` - the RAG chunk library (used by the audit lanes).
 13. `overlay/WIRE.md`, `overlay/BENCH.md`, `overlay/DAVFX-BUILD.md` - the existing overlay contract.
 14. `experimental-dgpu/` - the dGPU kernel experiments.
@@ -53,7 +54,7 @@ not lanes.
 | `moe-lab/` | LFM campaign record, the Flint campaign plan, and `FLINT-UPSTREAM.md` (Flint merge state and usage contract) |
 | `break1650/` | The GTX 1650 program: self-contained plan folder for an outside auditor |
 | `plans/` | The design lanes; one index, one primitive table (PRIMITIVES.md) |
-| app-lane/ | The transport + UI lanes: wire bin, agent UI fixes, audit status |
+| app-lane/ | The transport + UI lanes: wire bin, agent UI fixes, audit status |
 | experimental-dgpu/ | The dGPU kernel experiments |
 | `TRACK-B-DISTILLATION.md` | Distillation plan for a small local tool agent (dormant until a dual-axis winner) |
 

@@ -150,7 +150,7 @@ No row without a command line and a binary identity.
 
 ## 8. X-RAY VERDICT (H2, harness-lane coder, 2026-10-22)
 
-**VERDICT: COLD TAIL DETECTED - surgery is live.**
+**VERDICT: WITHDRAWN 2026-11-01 - superseded by section 9 below.**
 
 The router histogram (flint-router-log.csv, 705 rows, 22 MoE layers x 32
 experts, 8960 tokens sampled via 10 diverse prompts through Q2_K_XL at
@@ -192,7 +192,100 @@ experts, 8960 tokens sampled via 10 diverse prompts through Q2_K_XL at
 - Build: `build_flint\bin\Release\llama-server.exe` (flint worktree)
 
 **Load note:** Q2_K_XL at -ngl 99 OOMs on the 4GB GPU (H2 CONFIRMED).
-Partial split at -ngl 10 loads and generates, but at 0.14-0.39 t/s prompt
-processing (H1 CONFIRMED: under the 2 t/s gate). The X-ray data was
-collected during these slow prompts; the router histogram does not require
-fast inference, only correct routing decisions.
+Partial split at -ngl 10 loads and generates. The "0.14-0.39 t/s prompt
+processing" figure quoted here is WITHDRAWN - it was a cold-start reading;
+`auditor-ISAYY\batch1\01a` re-derived the same log as 11.1-14.5 t/s pp /
+7.7-9.2 t/s tg warm. The X-ray data was collected during those slow
+prompts; the router histogram does not require fast inference, only correct
+routing decisions.
+
+---
+
+## 9. REVISED X-RAY VERDICT (2026-11-01, derived from the surviving substrate)
+
+The section 8 verdict is withdrawn for two independent reasons.
+
+**Reason 1 - wrong source.** `router-q2xl-initial.csv` (704 rows, 22 layers
+spanning 2..23, 32 experts/layer, 394 selections) is the shape of
+LFM2.5-8B-A1B, not Flint. Verified by GGUF header read: LFM2.5-8B-A1B has
+24 blocks with 22 MoE layers, `expert_count=32`, `expert_used_count=4`;
+Flint Q2_K_XL has 49 blocks with 47 MoE layers, `expert_count=256`,
+`expert_used_count=6`, `expert_shared_count=2`. A 32-wide capture cannot
+have come from a 256-wide model. It also carries 394 selections against a
+required 36,045 (`auditor-ISAYY\batch1\01c`), i.e. 1.09% of the topology.
+
+**Reason 2 - the channel that would have fixed it is dead.** Across all
+three Flint-shaped captures (`router-q3xl-full.csv`, `router-q2xl-mt5-32k.csv`,
+`router-q3xl-mt5-32k.csv`; 30,080 rows) BOTH `selected` and `mass_selected`
+are zero. Only `mass_all` (the pre-topk router gate) flows. REPAIR (EXP-2)
+is still open. What follows is derived from `mass_all` alone.
+
+### What is still computable, and the answer
+
+Flint's gating is sigmoid (`expert_gating_func=2` from the header), so the
+top-6 selection set IS the top-6 gate set. `router-q3xl-full.csv` gives
+40 layers x 256 experts x 516 tokens. Dividing `mass_all` by the `tokens`
+denominator recovers a mean gate per slot; every slot lands in [0,1], which
+confirms the interpretation. Measured:
+
+| Statistic | Value | Reading |
+|---|---|---|
+| Slots with gate > 0 | 10,236 of 10,236 | **no dead experts** |
+| Normalised entropy | 0.801 | 80% of load-balanced |
+| Gini of gate mass | 0.668 | moderate |
+| Top-6 of 256 carry | 45% of gate mass (uniform = 2.34%) | 19x enriched |
+| Slots for 95% of gate mass | 6,871 of 12,032 (67%) | long tail, not absent |
+
+**This is a third answer, and it splits the lane.** It is neither the
+section 8 "cold tail, surgery is live" nor LFM2.5's "load-balanced,
+surgery dies":
+
+- **Amputation / ghost surgery: DEAD.** You cannot remove 70% of experts
+  when all 10,236 slots are alive and the bottom half collectively hold
+  55% of gate mass. Removing them removes mass, not fat.
+- **Hot-set caching: ALIVE and priced below.**
+
+### Pricing the cache (trust-ledger UNVERIFIED row 1)
+
+Expert size = 3 x 2048 x 512 params = 1.07 MB at Q2_K_XL (0.34 B/param,
+cross-checked: 13.56 GB file / 39.8 B params). Full expert stream per
+token = 47 MoE layers x top-6 = 301.6 MB. LRU simulated over the derived
+per-layer gate distribution, 150k draws/layer, 3 layers:
+
+| k per layer | Cache | Hit rate | MB/token read | GB/s @ 18.9 t/s |
+|---:|---:|---:|---:|---:|
+| 32 | 1.61 GB | 29.6% | 212.3 | 4.01 |
+| 64 | 3.22 GB | 43.4% | 170.7 | 3.23 |
+| 96 | 4.83 GB | 56.1% | 132.4 | 2.50 |
+| 128 | 6.43 GB | 67.6% | 97.7 | 1.85 |
+
+Three consequences:
+
+1. **The cache pays for itself ~10x.** Over a 516-token session a layer
+   issues 6 x 516 = 3,096 reads; at k=64 across 47 layers each cached slot
+   is re-served ~21 times, against a breakeven of 2 reads.
+2. **It does NOT convert the bandwidth wall into a cache-hit wall.** At the
+   box's real VRAM budget (k=64 = 3.22 GB, i.e. the GTX 1650's usable
+   ~3.1-3.4 GB) the residual requirement is 3.23 GB/s - 16x the HDD's
+   0.2 GB/s ceiling. The cache is necessary but not sufficient; it needs
+   P0's io_engine beside it.
+3. **The two lanes are coupled.** The P0 io_engine is the lane currently
+   funded by the 1000x-wrong unit error fixed in `04-LOADER-DEEP-DIVE.md`.
+   Fixing that fix and landing this cache are the same bet.
+
+**Caveat (stated, not hidden).** These are UPPER BOUNDS. `mass_all` is a
+token-averaged gate, so top-6 here is the top-6 for the average token; real
+per-token selection carries more variance, which strictly lowers hit rate.
+An i.i.d. proxy also ignores temporal correlation in routing. Upper bound
+is the correct direction for a green-window call: if the ceiling at real
+VRAM is 43%, better capture data cannot rescue the lane.
+
+### What this settles and what stays open
+
+- SETTLED: trust-ledger UNVERIFIED row 1 no longer needs its "~1 h,
+  CPU-light" Glider #2 run - it is answered above from data on disk since
+  2026-10-23. EXP-2 remains open for the transition statistic (the
+  `tokens` column is a repeated denominator, not a row index, so no time
+  axis exists in these files).
+- OPEN: EXP-2 (repair the argsort observation) for per-token selection and
+  the transition statistic; the 49k-ctx LFM3 re-run.

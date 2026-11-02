@@ -1,8 +1,11 @@
 # FLINT-UPSTREAM - merge, build, and bench the Flint model
 
-Date: 2026-10-22
-Status: merge staged, no build, no download, no inference. Nothing in this
-document has been executed on the Flint path yet.
+Date: 2026-10-22, corrected 2026-11-01
+Status: merge COMMITTED `0882f7c09` on `mod/flint-support` (2026-10-28),
+build 11833 produced, quants fetched (Q2_K_XL 12.63 GB, Q3_K_XL 17.22 GB),
+a Q2/Q3 sweep has run, and the LFM3 arch is rebuilt into the same binary.
+The "merge staged / no build / no download / no inference" line this
+document carried was falsified on disk; see `README.md` and `REPO-MAP.md`.
 
 ## 1. Position
 
@@ -46,8 +49,8 @@ restored.
 | Total / active | 39.8B / ~2.5B |
 | Layers | 49 (2 dense + 47 MoE) |
 | Routed experts | 256 per MoE layer |
-| Shared experts | 1 per MoE layer |
-| Experts per token | 6 routed + 1 shared |
+| Shared experts | **2 per MoE layer** (`expert_shared_count=2`, read from the GGUF header; 47 MoE layers each carry `ffn_*_shexp` tensors) |
+| Experts per token | 6 routed + 2 shared (`expert_used_count=6` routed) |
 | Attention | 35 sliding-window (513) + 14 full |
 | Heads | 32 query / 4 KV, head dim 128 |
 | Vocab | 150,144 |

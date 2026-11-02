@@ -16,9 +16,18 @@ speed and whatever we want, thatsd crazy but the type of shit we need"*.
 4. the loader has no idea what the model is about to do - it fetches pixels
    in file order and pays random-fault latency on a disk built for streams
 
-The load of Flint Q2 (12.63 GB / 3,259,424 pages) is up to **39 million
-random-page faults in the worst case**; sequential staging turns that into
-one 12.63 GB sweep at ~65 GB/s effective.
+The load of Flint Q2 (12.63 GB / 3,083,497 pages of 4096 B) is up to
+**3.08 million random-page faults in the worst case**; at the measured
+~12 ms per 4K fault that is **10.3 hours** of worst-case fault time. The
+earlier "39 million" figure was 39 million *milliseconds* relabelled as a
+count (3,259,424 pages was also wrong: 12.63e9 / 4096 = 3,083,497, and the
+old number implied 3,874.92 bytes/page, an impossible granularity).
+Sequential staging turns it into one 12.63 GB sweep at **~60 MB/s**
+(1 MiB / 16.7 ms = 59.9 MB/s) - about 3.5 minutes, which is the conclusion
+the L1 section below already drew, now with the unit stated correctly.
+Drive floor for reference: 0.06-0.2 GB/s effective
+(`01-MEASURED-FACTS.md`), i.e. the sequential 1 MiB read is the disk's
+ceiling, not its random latency.
 
 **So yes: 100% of the bytes come HDD->RAM (page cache), and the GPU gets
 what it needs through copies.** The question is whether that path has to be
@@ -43,7 +52,7 @@ class, chosen at load time from a manifest.**
 
 **L1 - Sequential warmer (ships first, no fork change).**
 Read the entire file into the OS file cache before llama.cpp starts.
-Sequential 1M reads: ~16.7 ms each, ~65 GB/s aggregate on this HDD.
+Sequential 1M reads: ~16.7 ms each, ~60 MB/s aggregate on this HDD.
 Then llama.cpp's page faults hit cache at DRAM speed. A 12.63 GB model goes
 from "minutes of random faults" to "about three and a half minutes of
 sequential read" + instant service. This is not clever; it is the disk's own

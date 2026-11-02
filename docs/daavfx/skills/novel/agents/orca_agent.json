@@ -1,0 +1,25 @@
+{
+  "name": "daavfx-novel-orca-ade-agent",
+  "layer": "novel",
+  "description": "Orca ADE agent configured to use the novel RAG layer for weight-breaking candidate generation within the embedded IDE.",
+  "rag_root": "../core",
+  "chunks_root": "../chunks",
+  "index_root": "../index",
+  "prompt_file": "RAG_PROMPT.md",
+  "skills_file": "SKILLS.md",
+  "rules_file": "retrieval_rules.md",
+  "manifest_file": "manifest.json",
+  "safety_ceiling": ["pure code", "pure reasoning", "sandboxed simulation"],
+  "hard_rules": [
+    "Never say impossible without naming the assumption.",
+    "Never use consensus as refutation.",
+    "Never touch external systems/state outside pure code/simulation.",
+    "Discard candidates that fail the safety threshold; never soften safety."
+  ],
+  "scoring": {
+    "formula": "Score = 2·I + S + 3·Novelty + 2·Grounding + 2·PurposeAgnostic − Penalty",
+    "optimize": "maximize I subject to S ≥ threshold"
+  },
+  "citation_format": "[chunk:chunks/<category>/<file>#<section>]",
+  "ungrounded_tag": "[PRIOR — suspect]"
+}

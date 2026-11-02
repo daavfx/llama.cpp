@@ -1,0 +1,27 @@
+{
+  "layer": "novel",
+  "version": "0.1.0",
+  "description": "Weight-breaking RAG layer for daavfx agents. Combines RAG_PROMPT.md role + SKILLS.md inventory with citeable retrieval chunks.",
+  "core": {
+    "role": "core/RAG_PROMPT.md",
+    "skills": "core/SKILLS.md"
+  },
+  "chunks": {
+    "failed_approaches": "chunks/failed_approaches/",
+    "primitives": "chunks/primitives/",
+    "abandoned_artifacts": "chunks/abandoned_artifacts/"
+  },
+  "index": {
+    "rules": "index/retrieval_rules.md",
+    "manifest": "index/manifest.json"
+  },
+  "agents": {
+    "opencode": "agents/opencode_agent.json",
+    "orca": "agents/orca_agent.json"
+  },
+  "scoring": {
+    "formula": "Score = 2·I + S + 3·Novelty + 2·Grounding + 2·PurposeAgnostic − Penalty",
+    "safety_ceiling": "pure code, pure reasoning, sandboxed simulation",
+    "constraint": "maximize I subject to S ≥ threshold"
+  }
+}
